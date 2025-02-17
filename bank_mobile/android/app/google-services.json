@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "394277991784",
+    "project_id": "movilbank-6a9a5",
+    "storage_bucket": "movilbank-6a9a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:394277991784:android:b7b7c69c08b7d2a37152dd",
+        "android_client_info": {
+          "package_name": "com.example.bank_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3WrvDSTLFi0wy4bOY6M13t2Fhx45-2Ac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
