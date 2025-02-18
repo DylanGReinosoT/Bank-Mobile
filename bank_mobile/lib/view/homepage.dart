@@ -1,4 +1,6 @@
+import 'package:bank_mobile/controller/usercontroller.dart';
 import 'package:bank_mobile/model/transaccion.dart';
+import 'package:bank_mobile/model/users.dart';
 import 'package:bank_mobile/view/cardspage.dart';
 import 'package:bank_mobile/view/pagopage.dart';
 import 'package:bank_mobile/view/tranferenciapages.dart';
@@ -16,14 +18,34 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   final user = FirebaseAuth.instance.currentUser;
+  final UserApiService api = UserApiService();
+  AppUser? currentUser;
   int _selectedIndex = 0;
+  List<Widget> _pages = [];
 
-  final List<Widget> _pages = [
-    const HomeContent(),
-    const PagosPage(),
-    TransferenciasPage(),
-    const Cardspage(),
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    if (user != null) {
+      AppUser? apiUser = await api.getUserByUi(user!.uid);
+      if (apiUser != null) {
+        setState(() {
+          currentUser = apiUser;
+           _pages = [
+            HomeContent(),
+            PagosPage(),
+            TransferenciasPage(),
+            Cardspage(id: currentUser?.id),
+          ];
+        });
+      }
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -69,44 +91,68 @@ class _HomepageState extends State<Homepage> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
+  _HomeContentState createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  final user = FirebaseAuth.instance.currentUser;
+  final UserApiService api = UserApiService();
+  AppUser? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    if (user != null) {
+      AppUser? apiUser = await api.getUserByUi(user!.uid);
+      if (apiUser != null) {
+        setState(() {
+          currentUser = apiUser;
+        });
+      }
+    }
+  }
+
+  final List<TransactionItemModel> transactions = [
+    TransactionItemModel(
+        id: '1',
+        title: "Pago de servicios",
+        amount: "-\$50.00",
+        date: "05 Feb 2025",
+        description: "Pago de luz",
+        estado: "Pendiente"),
+    TransactionItemModel(
+        id: '2',
+        title: "Depósito recibido",
+        amount: "+\$1,200.00",
+        date: "04 Feb 2025",
+        description: "Depósito de nómina",
+        estado: "Completado"),
+    TransactionItemModel(
+        id: '3',
+        title: "Compra en tienda",
+        amount: "-\$75.90",
+        date: "03 Feb 2025",
+        description: "Compra de víveres",
+        estado: "Cancelado"),
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    final List<TransactionItemModel> transactions = [
-      TransactionItemModel(
-          id: '1',
-          title: "Pago de servicios",
-          amount: "-\$50.00",
-          date: "05 Feb 2025",
-          description: "Pago de luz",
-          estado: "Pendiente"),
-      TransactionItemModel(
-          id: '2',
-          title: "Depósito recibido",
-          amount: "+\$1,200.00",
-          date: "04 Feb 2025",
-          description: "Depósito de nómina",
-          estado: "Completado"),
-      TransactionItemModel(
-          id: '3',
-          title: "Compra en tienda",
-          amount: "-\$75.90",
-          date: "03 Feb 2025",
-          description: "Compra de víveres",
-          estado: "Cancelado"),
-    ];
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hola, ${user?.email ?? "Usuario"} 👋',
+            'Hola, ${currentUser?.firstName ?? "Usuario"} 👋',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -129,9 +175,9 @@ class HomeContent extends StatelessWidget {
                     style: TextStyle(fontSize: 16, color: Colors.black),
                   ),
                   const SizedBox(height: 8.0),
-                  const Text(
-                    '\$ 5,000.00',
-                    style: TextStyle(
+                  Text(
+                    '\$ ${"0.00"}',
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,

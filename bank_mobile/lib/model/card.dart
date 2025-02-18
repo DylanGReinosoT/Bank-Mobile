@@ -1,55 +1,61 @@
 import 'package:intl/intl.dart';
 
 class CardsModel {
-  final String numeroTarjeta;
-  final DateTime dateVencimiento;
-  final String codigo;
-  final String tipoTarjeta;
-  final double saldo;
-  final String titular;
-  final DateTime dateCreacion;
+  final String cardNumber;
+  final String expirationDate; // Se mantiene como String porque la API lo envía en "MM/yy"
+  final String securityCode;
+  final String cardType;
+  final double balance;
+  final String cardHolderName;
 
   CardsModel({
-    required this.numeroTarjeta,
-    required this.dateVencimiento,
-    required this.codigo,
-    required this.tipoTarjeta,
-    required this.saldo,
-    required this.titular,
-    required this.dateCreacion,
+    required this.cardNumber,
+    required this.expirationDate,
+    required this.securityCode,
+    required this.cardType,
+    required this.balance,
+    required this.cardHolderName,
   });
 
-  /// 🔹 **Método para formatear fecha de vencimiento**
-  String get formattedVencimiento =>
-      DateFormat('MM/yy').format(dateVencimiento);
+  /// 🔹 **Obtener fecha de vencimiento como `DateTime`**
+  DateTime get expirationDateAsDateTime {
+    try {
+      final parts = expirationDate.split('/');
+      final int month = int.parse(parts[0]);
+      final int year = int.parse(parts[1]) + 2000; // Convierte "25" en "2025"
+      return DateTime(year, month, 1);
+    } catch (e) {
+      return DateTime.now(); // En caso de error, devuelve la fecha actual
+    }
+  }
 
-  /// 🔹 **Método para formatear fecha de creación**
-  String get formattedCreacion =>
-      DateFormat('dd MMM yyyy').format(dateCreacion);
+  /// 🔹 **Obtener fecha de vencimiento en formato legible**
+  String get formattedExpirationDate {
+    DateTime date = expirationDateAsDateTime;
+    return DateFormat('MM/yy').format(date);
+  }
 
-  /// 🔹 **Convertir a JSON (útil para Firebase o APIs)**
+  /// 🔹 **Convertir a JSON (para enviar a la API)**
   Map<String, dynamic> toJson() {
     return {
-      'numeroTarjeta': numeroTarjeta,
-      'dateVencimiento': dateVencimiento.toIso8601String(),
-      'codigo': codigo,
-      'tipoTarjeta': tipoTarjeta,
-      'saldo': saldo,
-      'titular': titular,
-      'dateCreacion': dateCreacion.toIso8601String(),
+      'cardNumber': cardNumber,
+      'expirationDate': expirationDate, // Se mantiene como String
+      'securityCode': securityCode,
+      'cardType': cardType,
+      'balance': balance,
+      'cardHolderName': cardHolderName,
     };
   }
 
   /// 🔹 **Crear un objeto desde JSON**
   factory CardsModel.fromJson(Map<String, dynamic> json) {
     return CardsModel(
-      numeroTarjeta: json['numeroTarjeta'],
-      dateVencimiento: DateTime.parse(json['dateVencimiento']),
-      codigo: json['codigo'],
-      tipoTarjeta: json['tipoTarjeta'],
-      saldo: json['saldo'].toDouble(),
-      titular: json['titular'],
-      dateCreacion: DateTime.parse(json['dateCreacion']),
+      cardNumber: json['cardNumber'],
+      expirationDate: json['expirationDate'], // Ya viene en "MM/yy"
+      securityCode: json['securityCode'],
+      cardType: json['cardType'],
+      balance: (json['balance'] as num).toDouble(), // Asegura que sea double
+      cardHolderName: json['cardHolderName'],
     );
   }
 }

@@ -1,8 +1,11 @@
 import 'package:bank_mobile/model/card.dart';
+import 'package:bank_mobile/controller/cardContoller.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AddCardPage extends StatefulWidget {
-  const AddCardPage({super.key});
+  final String? idUser ;
+  const AddCardPage({super.key,this.idUser});
 
   @override
   State<AddCardPage> createState() => _AddCardPageState();
@@ -10,27 +13,45 @@ class AddCardPage extends StatefulWidget {
 
 class _AddCardPageState extends State<AddCardPage> {
   final _formKey = GlobalKey<FormState>();
+  final CardsController _controller = CardsController();
+
   final TextEditingController _numeroTarjetaController =
       TextEditingController();
   final TextEditingController _codigoController = TextEditingController();
   final TextEditingController _saldoController = TextEditingController();
   final TextEditingController _titularController = TextEditingController();
-  DateTime? _fechaVencimiento;
-  String _tipoTarjeta = 'Visa';
 
-  void _guardarTarjeta() {
+  DateTime? _fechaVencimiento;
+  String _tipoTarjeta = 'CREDIT';
+
+  /// 🔹 **Guardar Tarjeta en la API**
+  Future<void> _guardarTarjeta() async {
     if (_formKey.currentState!.validate() && _fechaVencimiento != null) {
       final nuevaTarjeta = CardsModel(
-        numeroTarjeta: _numeroTarjetaController.text,
-        dateVencimiento: _fechaVencimiento!,
-        codigo: _codigoController.text,
-        tipoTarjeta: _tipoTarjeta,
-        saldo: double.parse(_saldoController.text),
-        titular: _titularController.text,
-        dateCreacion: DateTime.now(),
+        cardNumber: _numeroTarjetaController.text,
+        expirationDate: DateFormat('MM/yy').format(_fechaVencimiento!),
+        securityCode: _codigoController.text,
+        cardType: _tipoTarjeta,
+        balance: double.parse(_saldoController.text),
+        cardHolderName: _titularController.text,
       );
 
-      Navigator.pop(context, nuevaTarjeta);
+      final result = await _controller.createCard(nuevaTarjeta);
+      bool creada = result["success"];
+      String? cardId = result["id"]?.toString();
+
+       await _controller.asignar(widget.idUser!, cardId!);
+
+      if (creada) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tarjeta guardada con éxito")),
+        );
+        Navigator.pop(context, nuevaTarjeta);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al guardar la tarjeta")),
+        );
+      }
     }
   }
 
@@ -159,8 +180,9 @@ class _AddCardPageState extends State<AddCardPage> {
       child: DropdownButtonFormField<String>(
         value: _tipoTarjeta,
         items: const [
-          DropdownMenuItem(value: 'Visa', child: Text('Visa')),
-          DropdownMenuItem(value: 'Mastercard', child: Text('Mastercard')),
+          DropdownMenuItem(value: 'CREDIT', child: Text('CREDIT')),
+          DropdownMenuItem(value: 'DEBIT', child: Text('DEBIT')),
+          DropdownMenuItem(value: 'PREPAID', child: Text('PREPAID')),
         ],
         onChanged: (value) => setState(() => _tipoTarjeta = value!),
         decoration: _inputDecoration('Tipo de Tarjeta'),

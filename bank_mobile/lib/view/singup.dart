@@ -1,7 +1,10 @@
 import 'package:bank_mobile/view/wapper.dart';
+import 'package:bank_mobile/controller/usercontroller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:bank_mobile/model/users.dart';
+
 
 class RegistroPage extends StatefulWidget {
   @override
@@ -20,57 +23,86 @@ class _RegistroPageState extends State<RegistroPage> {
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _direccionController = TextEditingController();
   final TextEditingController _estadoController = TextEditingController();
+  final UserApiService _userApiService = UserApiService();
 
   bool _isLoading = false;
 
-  Future<void> _registrarUsuario() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
 
-      try {
-        // Crear usuario en Firebase Auth
-        UserCredential userCredential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+Future<void> _registrarUsuario() async {
+  if (!_formKey.currentState!.validate()) return;
 
-        User? user = userCredential.user;
+  setState(() {
+    _isLoading = true;
+  });
 
-        if (user != null) {
-          // Guardar datos adicionales en Firestore
-          await FirebaseFirestore.instance
-              .collection('usuarios')
-              .doc(user.uid)
-              .set({
-            'nombre': _nombreController.text.trim(),
-            'apellido': _apellidoController.text.trim(),
-            'email': _emailController.text.trim(),
-            'telefono': _telefonoController.text.trim(),
-            'direccion': _direccionController.text.trim(),
-            'estado': _estadoController.text.trim(),
-            'uid': user.uid,
-          });
+  try {
+    // Crear usuario en Firebase Auth
+    UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registro exitoso')),
-          );
-
-          Get.offAll(() => const Wapper()); // Redirigir a la pantalla principal
-        }
-      } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Error en el registro')),
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    User? firebaseUser = userCredential.user;
+    if (firebaseUser == null) {
+      throw FirebaseAuthException(code: "USER_NULL", message: "No se pudo obtener el usuario.");
     }
+
+    // Crear usuario usando el modelo AppUser
+    AppUser newUser = AppUser(
+      id:"",
+      firstName: _nombreController.text.trim(),
+      lastName: _apellidoController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+      phoneNumber: _telefonoController.text.trim(),
+      address: _direccionController.text.trim(),
+      accountStatus: "ACTIVE",
+      ui: firebaseUser.uid,
+    );
+
+    // Enviar usuario a la API
+    AppUser? apiUser = await _userApiService.createUser(newUser);
+
+    if (apiUser != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registro exitoso')),
+      );
+      Get.offAll(() => const Wapper());
+    } else {
+      throw Exception("No se pudo registrar en la API");
+    }
+  } on FirebaseAuthException catch (e) {
+    String errorMessage = _getFirebaseAuthErrorMessage(e.code);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(errorMessage)),
+    );
+  } catch (e) {
+    print("❌ Error en _registrarUsuario: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error inesperado, intenta nuevamente.')),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
+
+
+/// 🔍 Método para traducir errores de Firebase a mensajes más claros
+String _getFirebaseAuthErrorMessage(String code) {
+  switch (code) {
+    case 'email-already-in-use':
+      return "El correo ya está en uso.";
+    case 'invalid-email':
+      return "Correo electrónico inválido.";
+    case 'weak-password':
+      return "La contraseña es demasiado débil.";
+    default:
+      return "Error desconocido. Inténtalo nuevamente.";
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
